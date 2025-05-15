@@ -1,4 +1,3 @@
-
 chrome.storage.sync.get(["opacity", "color", "keywords"], (settings) => {
   const opacity = settings.opacity ?? 0.5;
   const color = settings.color ?? "#dddddd";
@@ -11,7 +10,9 @@ chrome.storage.sync.get(["opacity", "color", "keywords"], (settings) => {
 
   const shouldDimByKeyword = (text) => {
     const lowerText = text.toLowerCase();
-    return keywords.some(keyword => lowerText.includes(keyword));
+    return keywords.some(keyword =>
+      new RegExp(`\\b${keyword}\\b`, 'i').test(lowerText)
+    );
   };
 
   const observer = new MutationObserver(() => {
@@ -20,8 +21,16 @@ chrome.storage.sync.get(["opacity", "color", "keywords"], (settings) => {
       jobs.forEach(job => {
         const alreadyDimmed = job.dataset.dimmed;
         if (!alreadyDimmed) {
-          const textContent = job.innerText;
-          if (textContent.includes("Applied") || textContent.includes("Viewed") || shouldDimByKeyword(textContent)) {
+          const statusEl = job.querySelector(".job-card-container__footer-job-state");
+          const statusText = statusEl?.innerText ?? "";
+          const fullText = job.innerText;
+
+          const shouldDim =
+            statusText.includes("Applied") ||
+            statusText.includes("Viewed") ||
+            shouldDimByKeyword(fullText);
+
+          if (shouldDim) {
             dimJob(job);
             job.dataset.dimmed = "true";
           }
@@ -32,5 +41,10 @@ chrome.storage.sync.get(["opacity", "color", "keywords"], (settings) => {
     }
   });
 
-  observer.observe(document.body, { childList: true, subtree: true });
+  const jobListContainer = document.querySelector(".jobs-search-results-list");
+  if (jobListContainer) {
+    observer.observe(jobListContainer, { childList: true, subtree: true });
+  } else {
+    observer.observe(document.body, { childList: true, subtree: true });
+  }
 });
