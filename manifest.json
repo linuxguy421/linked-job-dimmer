@@ -1,14 +1,21 @@
+
 {
   "manifest_version": 3,
-  "name": "LinkedIn Job Dimmer",
+  "name": "Linked Job Dimmer",
   "version": "1.1",
-  "description": "Darkens LinkedIn job cards marked as Viewed or Applied, with customizable options.",
+  "description": "Dims or hides previously viewed or applied jobs on LinkedIn.",
   "permissions": ["storage"],
-  "options_page": "options.html",
+  "action": {
+    "default_popup": "options.html",
+    "default_icon": {
+      "128": "icons/icon128.png"
+    }
+  },
   "content_scripts": [
     {
-      "matches": ["https://www.linkedin.com/jobs/*"],
-      "js": ["content.js"]
+      "matches": ["*://www.linkedin.com/jobs/*"],
+      "js": ["content.js"],
+      "run_at": "document_idle"
     }
   ],
   "icons": {

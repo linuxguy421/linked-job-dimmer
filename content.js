@@ -1,42 +1,36 @@
-function applyCustomStyles(settings) {
-  const style = document.createElement('style');
-  style.id = 'job-dimmer-style';
-  style.textContent = `
-    .job-dimmed {
-      opacity: ${settings.opacity} !important;
-      background-color: ${settings.bgColor} !important;
-      color: ${settings.textColor} !important;
-    }
-  `;
-  document.head.appendChild(style);
-}
 
-function dimJobs(settings) {
-  const jobCards = document.querySelectorAll('[data-job-id]');
-  jobCards.forEach(card => {
-    const textContent = card.textContent.toLowerCase();
-    if (textContent.includes('viewed') || textContent.includes('applied')) {
-      card.classList.add('job-dimmed');
-    }
-  });
-}
+chrome.storage.sync.get(["opacity", "color", "keywords"], (settings) => {
+  const opacity = settings.opacity ?? 0.5;
+  const color = settings.color ?? "#dddddd";
+  const keywords = settings.keywords ?? [];
 
-function init() {
-  chrome.storage.sync.get({
-    enabled: true,
-    opacity: 0.4,
-    bgColor: '#2a2a2a',
-    textColor: '#ccc'
-  }, (settings) => {
-    if (settings.enabled) {
-      if (!document.getElementById('job-dimmer-style')) {
-        applyCustomStyles(settings);
-      }
-      dimJobs(settings);
-      const observer = new MutationObserver(() => dimJobs(settings));
-      observer.observe(document.body, { childList: true, subtree: true });
+  const dimJob = (job) => {
+    job.style.opacity = opacity;
+    job.style.backgroundColor = color;
+  };
+
+  const shouldDimByKeyword = (text) => {
+    const lowerText = text.toLowerCase();
+    return keywords.some(keyword => lowerText.includes(keyword));
+  };
+
+  const observer = new MutationObserver(() => {
+    try {
+      const jobs = document.querySelectorAll(".job-card-container");
+      jobs.forEach(job => {
+        const alreadyDimmed = job.dataset.dimmed;
+        if (!alreadyDimmed) {
+          const textContent = job.innerText;
+          if (textContent.includes("Applied") || textContent.includes("Viewed") || shouldDimByKeyword(textContent)) {
+            dimJob(job);
+            job.dataset.dimmed = "true";
+          }
+        }
+      });
+    } catch (e) {
+      console.error("Job Dimmer error:", e);
     }
   });
-}
 
-window.addEventListener('load', init);
+  observer.observe(document.body, { childList: true, subtree: true });
+});
